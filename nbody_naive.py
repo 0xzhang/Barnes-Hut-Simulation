@@ -9,7 +9,7 @@ ti.init(arch=ti.cpu)
 # number of planets
 N = 100
 # galaxy size
-galaxy_size = 0.4
+galaxy_size = 0.2
 
 # time-step size
 h = 1e-4
@@ -27,6 +27,7 @@ vel = ti.Vector.field(2, ti.f32, N)
 
 bodies = []
 
+
 # init pos and vel
 @ti.kernel
 def ti_init():
@@ -40,6 +41,7 @@ def ti_init():
         vel[i] = [-offset.y, offset.x]
         vel[i] *= init_vel
 
+
 # init bodies list
 def init():
     ti_init()
@@ -48,19 +50,32 @@ def init():
     for i in range(N):
         bodies.append(Body(1, p[i], v[i]))
 
+
 def step():
     for i in range(substepping):
-        for body in bodies:
-            body.reset_force()
-            for other in bodies:
-                body.add_force(other)
-        for body in bodies:
-            body.update(dt)
+        # n^2
+        # for body in bodies:
+        #     body.reset_force()
+        #     for other in bodies:
+        #         body.add_force(other)
+        #     body.update(dt)
+
+        # 1/2 n^2
+        # Actions equals minus reactions, according to Newton's Third Law.
+        for bi in range(len(bodies)):
+            bodies[bi].reset_force()
+            for bj in range(bi, len(bodies)):
+                df = bodies[bi].ret_force(bodies[bj])
+                bodies[bi].update_force(df)
+                bodies[bj].update_force(-df)
+            bodies[bi].update(dt)
+
 
 def display(gui):
     for body in bodies:
         body.display(gui)
     gui.show()
+
 
 def main():
     ui = True
@@ -85,6 +100,7 @@ def main():
     else:
         while True:
             step()
+
 
 if __name__ == "__main__":
     main()
