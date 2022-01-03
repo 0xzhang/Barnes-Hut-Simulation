@@ -1,4 +1,3 @@
-# import taichi as ti
 import numpy as np
 from body import Body
 
@@ -56,25 +55,32 @@ class QuadTree:
                 self.NW.insert(body)
             elif body.in_quad(self.quad.NE()):
                 self.NE.insert(body)
+            # add to node body aggregate mass
+            R, M = self.body.pos, self.body.m
+            r, m = body.pos, body.m
+            R = (M*R + m*r)/(M + m)
+            M += m
+            self.body = Body(M, R)
         else:
-            #if node is empty, add body and make external node
+            # if node is empty, add body and make external node
             self.body = body
             self.external = True
 
+    # evaluate force on body from tree with resolution theta
     def apply_force(self, body: Body, theta = 1.0, eps = 1e-5):
-        #evaluate force on body from tree with resolution theta
+        # not an empty node
         if hasattr(self, 'body'):
-            #not an empty node
-            d = body.distance_to(self.body) #distance of node body to body
-            if self.quad.size/d < theta or self.external:
-                #box sufficiently far away for its size, compute force
+            # distance of node body to body
+            d = body.distance_to(self.body)
+            # box sufficiently far away for its size, compute force
+            if (d != 0.0 and self.quad.size/d < theta) or self.external:
                 body.add_force(self.body)
             else:
-                #box too close, compute forces from children instead
-                self.SW.apply_force(body)
-                self.SE.apply_force(body)
-                self.NW.apply_force(body)
-                self.NE.apply_force(body)
+                # box too close, compute forces from children instead
+                self.SW.apply_force(body, theta, eps)
+                self.SE.apply_force(body, theta, eps)
+                self.NW.apply_force(body, theta, eps)
+                self.NE.apply_force(body, theta, eps)
 
     def display(self, gui):
         if hasattr(self, 'body'):

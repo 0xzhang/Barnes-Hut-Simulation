@@ -2,21 +2,20 @@
 import math
 import taichi as ti
 import numpy as np
-
 from body import Body
 
 ti.init(arch=ti.cpu)
 
-
 # number of planets
 N = 100
-# init vel
-init_vel = 120
+# galaxy size
+galaxy_size = 0.4
 
 # time-step size
 h = 1e-4
 # substepping
-substepping = 10
+substepping = 1
+dt = h / substepping
 
 # center of the screen
 center = ti.Vector.field(2, ti.f32, ())
@@ -31,8 +30,6 @@ bodies = []
 # init pos and vel
 @ti.kernel
 def ti_init():
-    # galaxy size
-    galaxy_size = 0.1
     # init vel
     init_vel = 120
     for i in range(N):
@@ -51,49 +48,43 @@ def init():
     for i in range(N):
         bodies.append(Body(1, p[i], v[i]))
 
-
-def compute_force():
-    for body in bodies:
-        body.reset_force()
-        for other in bodies:
-            body.add_force(other)
-
-
-def update():
-    dt = h / substepping
-    for body in bodies:
-        body.update(dt)
-    
-
 def step():
     for i in range(substepping):
-        compute_force()
-        update()
+        for body in bodies:
+            body.reset_force()
+            for other in bodies:
+                body.add_force(other)
+        for body in bodies:
+            body.update(dt)
 
-  
 def display(gui):
     for body in bodies:
         body.display(gui)
     gui.show()
 
 def main():
-    gui = ti.GUI('N-body naive simulation', (800, 800))
+    ui = True
     init()
 
-    pause = True
-    while gui.running:
-        for e in gui.get_events(ti.GUI.PRESS):
-            if e.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
-                exit()
-            elif e.key == 'r':
-                init()
-            elif e.key == ti.GUI.SPACE:
-                pause = not pause
+    if ui:
+        gui = ti.GUI('N-body naive simulation', (800, 800))
+        pause = False
+        while gui.running:
+            for e in gui.get_events(ti.GUI.PRESS):
+                if e.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
+                    exit()
+                elif e.key == 'r':
+                    init()
+                elif e.key == ti.GUI.SPACE:
+                    pause = not pause
 
-        if not pause:
+            if not pause:
+                step()
+
+            display(gui)
+    else:
+        while True:
             step()
-
-        display(gui)
 
 if __name__ == "__main__":
     main()

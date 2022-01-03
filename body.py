@@ -4,7 +4,7 @@ import numpy as np
 G = 1
 
 class Body:
-    def __init__(self, mass, pos: np.ndarray, vel: np.ndarray):
+    def __init__(self, mass, pos: np.ndarray, vel = np.zeros(2)):
         self.m = mass
         self.pos = pos
         self.vel = vel

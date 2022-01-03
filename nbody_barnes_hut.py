@@ -7,16 +7,16 @@ from quadtree import Quad, QuadTree
 
 ti.init(arch=ti.cpu)
 
-
 # number of planets
 N = 100
-# init vel
-init_vel = 120
+# galaxy size
+galaxy_size = 0.4
 
 # time-step size
 h = 1e-4
 # substepping
-substepping = 10
+substepping = 1
+dt = h / substepping
 
 # center of the screen
 center = ti.Vector.field(2, ti.f32, ())
@@ -31,8 +31,6 @@ bodies = []
 # init pos and vel
 @ti.kernel
 def ti_init():
-    # galaxy size
-    galaxy_size = 0.1
     # init vel
     init_vel = 120
     for i in range(N):
@@ -50,20 +48,7 @@ def init():
     v = vel.to_numpy()
     for i in range(N):
         bodies.append(Body(1, p[i], v[i]))
-
-
-def compute_force(tree):
-    for body in bodies:
-        body.reset_force()
-        tree.apply_force(body)
-
-
-def update():
-    dt = h / substepping
-    for body in bodies:
-        body.update(dt)
-    
-
+  
 def build_tree():
     qt = QuadTree(Quad(np.array([0.0, 0.0]), 1.0))
     for body in bodies:
@@ -71,10 +56,15 @@ def build_tree():
     return qt
 
 def step():
+    theta = 10
     qt = build_tree()
     for i in range(substepping):
-        compute_force(qt)
-        update()
+        for body in bodies:
+            body.reset_force()
+            qt.apply_force(body, theta)
+        for body in bodies:
+            body.update(dt)
+
     return qt
 
 def display(gui):
@@ -83,25 +73,30 @@ def display(gui):
     gui.show()
 
 def main():
-    gui = ti.GUI('N-body naive simulation', (800, 800))
+    ui = True
     init()
     qt = build_tree()
 
-    pause = True
-    while gui.running:
-        for e in gui.get_events(ti.GUI.PRESS):
-            if e.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
-                exit()
-            elif e.key == 'r':
-                init()
-            elif e.key == ti.GUI.SPACE:
-                pause = not pause
+    if ui:
+        gui = ti.GUI('N-body naive simulation', (800, 800))
+        pause = False
+        while gui.running:
+            for e in gui.get_events(ti.GUI.PRESS):
+                if e.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
+                    exit()
+                elif e.key == 'r':
+                    init()
+                elif e.key == ti.GUI.SPACE:
+                    pause = not pause
 
-        if not pause:
-            qt = step()
-        qt.display(gui)
+            if not pause:
+                qt = step()
 
-        display(gui)
+            qt.display(gui)
+            display(gui)
+    else:
+        while True:
+            step()
 
 if __name__ == "__main__":
     main()
