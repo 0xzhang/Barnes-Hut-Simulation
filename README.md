@@ -37,10 +37,10 @@ $ python nbody_barnes_hut.py
 ├── imgs
 │   ├── nbody_quadtree.gif
 │   └── nbody_naive.gif
-├── body.py	# 粒子类
-├── quadtree.py	# Quadtree类
-├── nbody_barnes_hut.py	# 使用BH算法的主程序
-├── nbody_naive.py	# 使用朴素算法的主程序
+├── body.py					# 粒子类
+├── quadtree.py				# Quadtree类
+├── nbody_barnes_hut.py		# 使用BH算法的主程序
+├── nbody_naive.py			# 使用朴素算法的主程序
 └── README.md
 ```
 
@@ -88,6 +88,39 @@ $$
 #### Quadtree 
 
 通过一个Quad作为root构造树，通过`insert()`建树，通过`apply_force()`计算一个物体受到整个Tree的作用力。
+
+## 性能分析
+
+应该使用相同的随机初始化值分别使用算法进行迭代，不使用相同初始条件的比较缺少说服力。
+
+粒子数~平均运行时间（Naive, theta=0.5/1.0/1.5）
+
+粒子数~平均误差（相对Naive, theta=0.5/1.0/1.5）
+
+## 一些问题
+
+### SNode不能过多
+
+使用过多的SNode会炸。比如`@ti.data_oriented`修饰的Body类中有多个field变量，想要创建很多Body时（超过32个），出现运行时错误。即使可以运行，这样的大量离散存储，一定也不会有足够的性能。
+
+```shell
+RuntimeError: [snode_tree_buffer_manager.cpp:taichi::lang::SNodeTreeBufferManager::allocate@44] LLVM backend supports up to 32 snode trees
+```
+
+### taichi的有效使用情况
+
+目前taichi scope不支持递归，因此不能用taichi实现递归遍历树的操作。
+
+这个实现并没有很好地和taichi结合起来，尚未能利用好taichi的高性能基础设施优势。
+
+### QuadTree
+
+尽管BH近似算法的时间复杂度比朴素算法更有优势，但是每次迭代中必须重建四叉树，有不少的开销，而且是不易并行的。
+
+- Cythonize。Python对递归函数的优化不足，可以基于C++实现QuadTree，使用Cython的形式结合起来。参考的yboetz程序中正是这样做的。在一定粒子数目下，这里的性能可以提升3倍左右。
+- 每次迭代大多数粒子并不会移动出上一次定位的区域，因此也许可以缓存四叉树，仅对变化部分进行重建。感觉是一种思路，但做起来似乎不太容易。
+- 并行建树，将树根部一下2~3层的树分发到不同节点，并行建树和遍历，这需要更多的通信，主要是针对非共享内存并行模型（MPI）的一种思路。
+
 ## 参考资料
 
 1. Barnes, J., & Hut, P. (1986). A hierarchical O(N log N) force-calculation algorithm. Nature, 324(6096), 446–449. doi:10.1038/324446a0
