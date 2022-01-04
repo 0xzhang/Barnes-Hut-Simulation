@@ -26,9 +26,9 @@ $ python nbody_barnes_hut.py
 >
 > galaxy_size = 0.2
 
-<a href="nbody_naive.gif"><img src="imgs/nbody_naive.gif" height=512px title="nbody_naive"></a>
+<a href="nbody_naive.gif"><img src="imgs/nbody_naive.gif" height=400px title="nbody_naive"></a>
 
-<a href="nbody_barnes_hut.gif"><img src="imgs/nbody_barnes_hut.gif" height=512px title="nbody_barnes_hut"></a>
+<a href="nbody_barnes_hut.gif"><img src="imgs/nbody_barnes_hut.gif" height=400px title="nbody_barnes_hut"></a>
 
 ## 整体结构
 ```shell
